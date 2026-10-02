@@ -47,8 +47,15 @@ class Settings(BaseSettings):
     # Phase 5 — External health integrations
     HEALTH_INTEGRATION_API_KEY: str = ""
 
-    # ------------------------------------------------------------------ #
-    # Pydantic Settings config
+    # Phase 5 — RAG / Embeddings
+    EMBEDDING_PROVIDER: str = "sentence_transformers"
+    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
+    EMBEDDING_API_KEY: str = ""
+    EMBEDDING_BASE_URL: str = ""
+    CHROMA_PERSIST_DIR: str = "./chroma_db"
+
+        # ------------------------------------------------------------------ #
+        # Pydantic Settings config
     # ------------------------------------------------------------------ #
     model_config = SettingsConfigDict(
         env_file=".env",
