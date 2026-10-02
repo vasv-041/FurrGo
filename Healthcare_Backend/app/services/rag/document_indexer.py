@@ -75,30 +75,22 @@ class DocumentIndexerService:
                 return False
 
             # Step 4: Generate embeddings
-            embedding_service = get_embedding_service()
-            embeddings = embedding_service.generate_embeddings(chunks)
+            embeddings = self.embedding_service.generate_embeddings(chunks)
 
             # Step 5: Store in ChromaDB
-            vector_store = get_vector_store()
-            metadata_list = []
-            for i, chunk in enumerate(chunks):
-                metadata = {
-                    "document_id": document.id,
-                    "chunk_index": i,
-                    "source_type": "pdf",
-                    "original_filename": document.original_filename
-                }
+            vector_store = self.vector_store
+            metadata = [{
+                "document_id": document.id,
+                "chunk_index": i,
+                "source_type": "pdf",
+                "original_filename": document.original_filename
+            } for i in range(len(chunks))]
 
             vector_store.add_chunks(
                 document_id=document.id,
                 chunks=chunks,
                 embeddings=embeddings,
-                metadata=[{
-                    "document_id": document.id,
-                    "chunk_index": i,
-                    "source_type": "pdf",
-                    "original_filename": document.original_filename
-                } for i in range(len(chunks))]
+                metadata=metadata
             )
 
             # Step 6: Update document status

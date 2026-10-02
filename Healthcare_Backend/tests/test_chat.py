@@ -1,8 +1,3 @@
-"""
-tests/test_chat.py
-
-Test Chat API with mocked NVIDIA Nemotron.
-"""
 import pytest
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
@@ -12,7 +7,7 @@ from app.main import app
 client = TestClient(app)
 
 
-@patch("app.api.routes.chat.get_nvidia_service")
+@patch("app.services.langchain.adapters.get_nvidia_service")
 def test_text_only_chat_success(mock_get_service):
     """Test successful text-only chat with mocked Nemotron."""
     # Setup mock service
@@ -36,7 +31,7 @@ def test_text_only_chat_success(mock_get_service):
     mock_service.generate_response.assert_called_once_with("What is dehydration?")
 
 
-@patch("app.api.routes.chat.get_nvidia_service")
+@patch("app.services.langchain.adapters.get_nvidia_service")
 def test_chat_appends_disclaimer(mock_get_service):
     """Test that disclaimer is always present in response."""
     mock_service = MagicMock()
@@ -85,7 +80,7 @@ def test_excessively_long_message_rejected():
     assert "exceeds maximum length" in response.json()["detail"]
 
 
-@patch("app.api.routes.chat.get_nvidia_service")
+@patch("app.services.langchain.adapters.get_nvidia_service")
 def test_missing_api_key_handled(mock_get_service):
     """Test that missing API key returns 503."""
     mock_service = MagicMock()
@@ -101,7 +96,7 @@ def test_missing_api_key_handled(mock_get_service):
     assert "not configured" in response.json()["detail"]
 
 
-@patch("app.api.routes.chat.get_nvidia_service")
+@patch("app.services.langchain.adapters.get_nvidia_service")
 def test_provider_failure_returns_controlled_error(mock_get_service):
     """Test that provider failure returns 502 with controlled message."""
     mock_service = MagicMock()
@@ -117,7 +112,7 @@ def test_provider_failure_returns_controlled_error(mock_get_service):
     assert "authentication failed" in response.json()["detail"]
 
 
-@patch("app.api.routes.chat.get_nvidia_service")
+@patch("app.services.langchain.adapters.get_nvidia_service")
 def test_empty_model_response_handled(mock_get_service):
     """Test that empty model response is handled."""
     mock_service = MagicMock()
@@ -133,7 +128,7 @@ def test_empty_model_response_handled(mock_get_service):
     assert "empty response" in response.json()["detail"]
 
 
-@patch("app.api.routes.chat.get_nvidia_service")
+@patch("app.services.langchain.adapters.get_nvidia_service")
 def test_urgent_symptoms_trigger_warning(mock_get_service):
     """Test that urgent symptoms in user message trigger emergency warning."""
     mock_service = MagicMock()
@@ -151,7 +146,7 @@ def test_urgent_symptoms_trigger_warning(mock_get_service):
     assert "911" in data["response"]
 
 
-@patch("app.api.routes.chat.get_nvidia_service")
+@patch("app.services.langchain.adapters.get_nvidia_service")
 def test_api_key_never_in_response(mock_get_service):
     """Test that API key is never returned in API response."""
     mock_service = MagicMock()
@@ -176,7 +171,7 @@ def test_no_database_records_created():
     # This test verifies that the chat endpoint doesn't require DB
     # and doesn't create User/Document records
     # We just verify the endpoint works without DB interaction
-    with patch("app.api.routes.chat.get_nvidia_service") as mock_get_service:
+    with patch("app.services.langchain.adapters.get_nvidia_service") as mock_get_service:
         mock_service = MagicMock()
         mock_service.generate_response.return_value = "Test response."
         mock_get_service.return_value = mock_service

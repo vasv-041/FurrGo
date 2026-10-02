@@ -79,7 +79,7 @@ class VectorStoreService:
                 "source_type": "pdf",
                 **meta
             }
-            chunk_metadata.append(chunk_metadata)
+            chunk_metadata.append(chunk_meta)
 
         # Add to collection
         self._collection.add(
