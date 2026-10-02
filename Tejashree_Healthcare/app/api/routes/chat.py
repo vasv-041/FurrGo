@@ -6,7 +6,7 @@ Routes to NVIDIA Nemotron for text-only, Gemini for multimodal.
 """
 import os
 from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form
-from typing import Optional
+from typing import Optional, Union
 
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.services.llm.nvidia_service import get_nvidia_service
@@ -30,7 +30,7 @@ MAX_UPLOAD_SIZE_MB = 10
 )
 async def chat_endpoint(
     message: str = Form(...),
-    file: Optional[UploadFile] = File(None)
+    file: Optional[Union[UploadFile, str]] = File(default=None)
 ) -> ChatResponse:
     """
     POST /api/chat
@@ -62,7 +62,23 @@ async def chat_endpoint(
     mime_type = None
 
     try:
-        if file and file.filename:
+        # Handle case where Swagger UI sends empty string for file when no file selected
+        # Convert empty string to None
+        if file is not None and isinstance(file, str):
+            file = None
+            
+        # Check if file is a valid UploadFile with a filename (not empty string)
+        # Use hasattr to avoid isinstance issues with FastAPI's UploadFile wrapper
+        has_file = (
+            file is not None 
+            and hasattr(file, 'filename') 
+            and file.filename 
+            and file.filename.strip()
+            and hasattr(file, 'content_type')
+            and hasattr(file, 'file')
+        )
+        
+        if has_file:
             # Save and validate uploaded file
             upload_dir = os.path.join(settings.UPLOAD_DIR, "chat")
             file_path = save_upload_file(file, upload_dir, MAX_UPLOAD_SIZE_MB)
