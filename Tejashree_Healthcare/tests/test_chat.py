@@ -22,7 +22,7 @@ def test_text_only_chat_success(mock_get_service):
 
     response = client.post(
         "/api/chat",
-        json={"message": "What is dehydration?"}
+        data={"message": "What is dehydration?"}
     )
 
     assert response.status_code == 200
@@ -45,7 +45,7 @@ def test_chat_appends_disclaimer(mock_get_service):
 
     response = client.post(
         "/api/chat",
-        json={"message": "What is blood pressure?"}
+        data={"message": "What is blood pressure?"}
     )
 
     assert response.status_code == 200
@@ -58,7 +58,7 @@ def test_empty_message_rejected():
     """Test that empty message returns 400."""
     response = client.post(
         "/api/chat",
-        json={"message": ""}
+        data={"message": ""}
     )
     assert response.status_code == 400
     assert "empty" in response.json()["detail"].lower()
@@ -68,7 +68,7 @@ def test_whitespace_only_message_rejected():
     """Test that whitespace-only message returns 400."""
     response = client.post(
         "/api/chat",
-        json={"message": "   \n\t  "}
+        data={"message": "   \n\t  "}
     )
     assert response.status_code == 400
     assert "empty" in response.json()["detail"].lower()
@@ -79,7 +79,7 @@ def test_excessively_long_message_rejected():
     long_message = "x" * 2001
     response = client.post(
         "/api/chat",
-        json={"message": long_message}
+        data={"message": long_message}
     )
     assert response.status_code == 400
     assert "exceeds maximum length" in response.json()["detail"]
@@ -94,7 +94,7 @@ def test_missing_api_key_handled(mock_get_service):
 
     response = client.post(
         "/api/chat",
-        json={"message": "What is dehydration?"}
+        data={"message": "What is dehydration?"}
     )
 
     assert response.status_code == 503
@@ -110,7 +110,7 @@ def test_provider_failure_returns_controlled_error(mock_get_service):
 
     response = client.post(
         "/api/chat",
-        json={"message": "What is dehydration?"}
+        data={"message": "What is dehydration?"}
     )
 
     assert response.status_code == 502
@@ -126,7 +126,7 @@ def test_empty_model_response_handled(mock_get_service):
 
     response = client.post(
         "/api/chat",
-        json={"message": "What is dehydration?"}
+        data={"message": "What is dehydration?"}
     )
 
     assert response.status_code == 502
@@ -142,7 +142,7 @@ def test_urgent_symptoms_trigger_warning(mock_get_service):
 
     response = client.post(
         "/api/chat",
-        json={"message": "I have severe chest pain"}
+        data={"message": "I have severe chest pain"}
     )
 
     assert response.status_code == 200
@@ -160,7 +160,7 @@ def test_api_key_never_in_response(mock_get_service):
 
     response = client.post(
         "/api/chat",
-        json={"message": "What is dehydration?"}
+        data={"message": "What is dehydration?"}
     )
 
     assert response.status_code == 200
@@ -183,7 +183,7 @@ def test_no_database_records_created():
 
         response = client.post(
             "/api/chat",
-            json={"message": "What is dehydration?"}
+            data={"message": "What is dehydration?"}
         )
 
         assert response.status_code == 200

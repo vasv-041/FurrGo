@@ -25,17 +25,20 @@ class Settings(BaseSettings):
     HOST: str = "127.0.0.1"
     PORT: int = 8000
 
-    # ------------------------------------------------------------------ #
+    # --------------------------------------------------------------------------- #
     # Future phase placeholders (optional — not required in Phase 1)
     # ------------------------------------------------------------------ #
-    # Phase 2 — AI / LLM integration (Gemini for image/PDF — later phase)
+    # Phase 2 — AI / LLM integration (Gemini for image/PDF)
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-1.5-flash"
+    GEMINI_MODEL: str = "gemini-3.8-flash"
 
     # Phase 3 — NVIDIA Nemotron (text-only chat)
     NVIDIA_API_KEY: str = ""
     NVIDIA_MODEL: str = "nvidia/nemotron-3.5-lightning-30b-a3b"
     NVIDIA_BASE_URL: str = "https://integrate.api.nvidia.com/v1"
+
+    # Phase 4 — Gemini (multimodal: image + PDF)
+    # GEMINI_API_KEY and GEMINI_MODEL already defined above for Phase 2
 
     # Phase 3 — Database
     DATABASE_URL: str = "sqlite:///./data/health_ai.db"
