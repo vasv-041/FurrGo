@@ -4,15 +4,15 @@ app/main.py
 FastAPI application entry point.
 Configures the app, registers routers, and sets up global middleware.
 """
-
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.api.routes import health, chat
+from app.api.routes import health, chat, medication
 from app.core.database import engine
 from app.models import Base
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -63,6 +63,7 @@ def create_application() -> FastAPI:
     # ------------------------------------------------------------------ #
     application.include_router(health.router)
     application.include_router(chat.router)
+    application.include_router(medication.router)
 
     return application
 
