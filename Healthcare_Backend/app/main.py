@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.api.routes import health, chat, medication
 from app.core.database import engine
 from app.models import Base
+from app.services.scheduler import get_scheduler_service, sync_schedules
 
 
 @asynccontextmanager
@@ -22,8 +23,23 @@ async def lifespan(app: FastAPI):
     """
     # Create database tables on startup
     Base.metadata.create_all(bind=engine)
+    
+    # Initialize and start scheduler
+    scheduler_service = get_scheduler_service()
+    scheduler_service.start()
+    
+    # Sync active medication schedules
+    from app.core.database import get_db
+    db_session = next(get_db())
+    try:
+        await sync_schedules(db_session)
+    finally:
+        db_session.close()
+    
     yield
-    # Shutdown logic goes here if needed
+    
+    # Shutdown scheduler gracefully
+    scheduler_service.shutdown()
 
 
 def create_application() -> FastAPI:

@@ -14,6 +14,7 @@ from app.models.medication import (
     AdherenceLog, 
     AdherenceStatus
 )
+from app.services.scheduler import remove_schedule_job, remove_medication_jobs
 from app.schemas.medication import (
     MedicationCreate,
     MedicationUpdate,
@@ -96,16 +97,20 @@ class MedicationService:
         return medication
 
     def deactivate_medication(self, medication_id: int, user_id: int) -> Optional["Medication"]:
-        """Deactivate (soft delete) a medication."""
-        medication = self.get_medication(medication_id, user_id)
-        if not medication:
-            return None
-        
-        medication.is_active = False
-        medication.updated_at = datetime.now(timezone.utc)
-        self.db.commit()
-        self.db.refresh(medication)
-        return medication
+            """Deactivate (soft delete) a medication."""
+            medication = self.get_medication(medication_id, user_id)
+            if not medication:
+                return None
+
+            medication.is_active = False
+            medication.updated_at = datetime.now(timezone.utc)
+            self.db.commit()
+            self.db.refresh(medication)
+
+            # Remove all associated scheduler jobs
+            remove_medication_jobs(medication_id)
+
+            return medication
 
     def delete_medication(self, medication_id: int, user_id: int) -> bool:
         """Hard delete a medication (and cascaded schedules/logs)."""
@@ -180,18 +185,22 @@ class MedicationService:
         return schedule
 
     def deactivate_schedule(self, schedule_id: int, medication_id: int) -> bool:
-        """Deactivate a schedule."""
-        schedule = self.db.query(MedicationSchedule).filter(
-            MedicationSchedule.id == schedule_id,
-            MedicationSchedule.medication_id == medication_id
-        ).first()
-        if not schedule:
-            return False
-        
-        schedule.is_active = False
-        schedule.updated_at = datetime.now(timezone.utc)
-        self.db.commit()
-        return True
+            """Deactivate a schedule."""
+            schedule = self.db.query(MedicationSchedule).filter(
+                MedicationSchedule.id == schedule_id,
+                MedicationSchedule.medication_id == medication_id
+            ).first()
+            if not schedule:
+                return False
+
+            schedule.is_active = False
+            schedule.updated_at = datetime.now(timezone.utc)
+            self.db.commit()
+
+            # Remove the associated scheduler job
+            remove_schedule_job(schedule_id, medication_id)
+
+            return True
 
     # ==================== Adherence Logs ====================
 

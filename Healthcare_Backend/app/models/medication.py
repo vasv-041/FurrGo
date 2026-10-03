@@ -3,7 +3,7 @@ app/models/medication.py
 
 Medication and adherence models for Phase 7A.
 """
-from datetime import datetime, timezone
+from datetime import datetime, time, timezone
 from sqlalchemy import Integer, String, DateTime, ForeignKey, Enum as SQLEnum, Date, Time, Boolean, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from enum import Enum as PyEnum
@@ -67,7 +67,7 @@ class MedicationSchedule(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     medication_id: Mapped[int] = mapped_column(Integer, ForeignKey("medications.id", ondelete="CASCADE"), nullable=False, index=True)
     
-    time_of_day: Mapped[datetime] = mapped_column(Time, nullable=False)
+    time_of_day: Mapped[time] = mapped_column(Time, nullable=False)
     timezone: Mapped[str] = mapped_column(String(50), nullable=False, default="UTC")
     
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
