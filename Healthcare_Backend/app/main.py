@@ -13,12 +13,13 @@ from app.api.routes import health, chat, medication
 from app.core.database import engine
 from app.models import Base
 from app.services.scheduler import get_scheduler_service, sync_schedules
+from app.services.notifications import get_notification_service, register_notification_callback
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Lifespan events for the application.
+    Lifecycle events for the application.
     Runs on startup and shutdown.
     """
     # Create database tables on startup
@@ -35,6 +36,9 @@ async def lifespan(app: FastAPI):
         await sync_schedules(db_session)
     finally:
         db_session.close()
+    
+    # Register notification callback
+    register_notification_callback()
     
     yield
     
