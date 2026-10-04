@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.api.routes import health, chat, medication
+from app.api.routes import health, chat, medication, fitness
 from app.core.database import engine
 from app.models import Base
 from app.services.scheduler import get_scheduler_service, sync_schedules
@@ -84,6 +84,7 @@ def create_application() -> FastAPI:
     application.include_router(health.router)
     application.include_router(chat.router)
     application.include_router(medication.router)
+    application.include_router(fitness.router)
 
     return application
 
