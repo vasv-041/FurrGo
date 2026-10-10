@@ -1,7 +1,7 @@
 """
 app/models/user.py
 
-User model with medication and fitness relationships.
+User model with medication, fitness, and Google Health relationships.
 """
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
@@ -13,10 +13,11 @@ from app.models.base import Base
 if TYPE_CHECKING:
     from app.models.fitness import FitnessData
     from app.models.medication import Medication
+    from app.models.google_health_token import GoogleHealthToken
 
 
 class User(Base):
-    """User model with medication and fitness relationships."""
+    """User model with medication, fitness, and Google Health relationships."""
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -42,6 +43,13 @@ class User(Base):
     # Relationship to fitness data
     fitness_data: Mapped[list["FitnessData"]] = relationship(
         "FitnessData",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    # Relationship to Google Health tokens
+    google_health_tokens: Mapped[list["GoogleHealthToken"]] = relationship(
+        "GoogleHealthToken",
         back_populates="user",
         cascade="all, delete-orphan"
     )
