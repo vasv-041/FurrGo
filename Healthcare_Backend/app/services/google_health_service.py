@@ -30,6 +30,7 @@ from app.schemas.google_health import (
     GoogleDisconnectResponse,
     GoogleHealthScope,
 )
+from app.models.fitness import FitnessData, FitnessSource
 
 logger = logging.getLogger(__name__)
 
@@ -419,15 +420,67 @@ class GoogleHealthService:
 
         return {"synced": synced}
 
+    def _extract_steps_from_daily_rollup(self, data: Dict) -> Optional[int]:
+        """Extract steps count from dailyRollUp response."""
+        try:
+            # Google Health API dailyRollUp response format
+            if "dailyRollups" in data:
+                for rollup in data["dailyRollups"]:
+                    if "data" in rollup:
+                        for point in rollup["data"]:
+                            if "value" in point and "intVal" in point["value"]:
+                                return point["value"]["intVal"]
+            return None
+        except Exception:
+            return None
+
+    def _extract_sleep_duration_from_rollup(self, data: Dict) -> Optional[int]:
+        """Extract total sleep duration in minutes from dailyRollUp response."""
+        try:
+            total_minutes = 0
+            if "dailyRollups" in data:
+                for rollup in data["dailyRollups"]:
+                    if "data" in rollup:
+                        for point in rollup["data"]:
+                            if "sleepStage" in point:
+                                stage = point["sleepStage"]
+                                duration = point.get("duration", {})
+                                if "seconds" in duration:
+                                    total_minutes += int(duration["seconds"]) // 60
+            return total_minutes if total_minutes > 0 else None
+        except Exception:
+            return None
+
     def _process_steps_data(self, user_id: int, date: datetime, data: Dict) -> int:
         """Process steps dailyRollUp response and store in FitnessData."""
-        # Implementation depends on Google Health API response format
-        # This is a placeholder for the actual parsing logic
         synced = 0
         try:
-            # Parse the dailyRollUp response and create/update FitnessData records
-            # Avoid duplicates by checking existing records for the same date/user
-            pass
+            # Parse the dailyRollUp response
+            steps_count = self._extract_steps_from_daily_rollup(data)
+            if steps_count is not None and steps_count > 0:
+                # Create or update FitnessData record
+                from app.services.fitness_service import FitnessService
+                from app.schemas.fitness import FitnessDataCreate, FitnessSource
+
+                fitness_service = FitnessService(self.db)
+                existing = self.db.query(FitnessData).filter(
+                    FitnessData.user_id == user_id,
+                    FitnessData.date == date.date(),
+                    FitnessData.source == FitnessSource.GOOGLE_FIT,
+                ).first()
+
+                if existing:
+                    existing.steps = steps_count
+                    existing.updated_at = datetime.now(timezone.utc)
+                else:
+                    fitness_data = FitnessDataCreate(
+                        user_id=user_id,
+                        recorded_at=datetime.combine(date.date(), datetime.min.time()).replace(tzinfo=timezone.utc),
+                        steps=steps_count,
+                        source=FitnessSource.GOOGLE_FIT,
+                    )
+                    fitness_service.create_fitness_data(fitness_data)
+                synced = 1
         except Exception as e:
             logger.warning(f"Failed to process steps data: {e}")
         return synced
@@ -436,9 +489,30 @@ class GoogleHealthService:
         """Process sleep dailyRollUp response and store in FitnessData."""
         synced = 0
         try:
-            # Parse sleep stages and calculate total sleep duration
-            # Store as FitnessData with sleep_duration in minutes
-            pass
+            from app.services.fitness_service import FitnessService
+            from app.schemas.fitness import FitnessDataCreate, FitnessSource
+
+            sleep_duration = self._extract_sleep_duration_from_rollup(data)
+            if sleep_duration is not None and sleep_duration > 0:
+                fitness_service = FitnessService(self.db)
+                existing = self.db.query(FitnessData).filter(
+                    FitnessData.user_id == user_id,
+                    FitnessData.date == date.date(),
+                    FitnessData.source == FitnessSource.GOOGLE_FIT,
+                ).first()
+
+                if existing:
+                    existing.sleep_duration = sleep_duration
+                    existing.updated_at = datetime.now(timezone.utc)
+                else:
+                    fitness_data = FitnessDataCreate(
+                        user_id=user_id,
+                        recorded_at=datetime.combine(date.date(), datetime.min.time()).replace(tzinfo=timezone.utc),
+                        sleep_duration=sleep_duration,
+                        source=FitnessSource.GOOGLE_FIT,
+                    )
+                    fitness_service.create_fitness_data(fitness_data)
+                synced = 1
         except Exception as e:
             logger.warning(f"Failed to process sleep data: {e}")
         return synced

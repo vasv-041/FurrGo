@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = ""
     GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/fitness/google/callback"
 
+    # Token encryption for secure storage
+    TOKEN_ENCRYPTION_KEY: str = ""
+
     # Phase 5 — RAG / Embeddings
     EMBEDDING_PROVIDER: str = "sentence_transformers"
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"

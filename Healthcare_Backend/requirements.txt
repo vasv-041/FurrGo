@@ -13,3 +13,4 @@ sentence-transformers>=2.2.0
 openai>=1.0.0
 langchain-core>=1.6.0
 langchain>=1.4.0
+cryptography>=42.0.0
