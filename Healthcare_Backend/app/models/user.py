@@ -5,7 +5,7 @@ User model with medication, fitness, and Google Health relationships.
 """
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
-from sqlalchemy import Integer, DateTime
+from sqlalchemy import Integer, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -21,6 +21,7 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    email: Mapped[str] = mapped_column(String(256), unique=True, nullable=False, index=True)
 
     # Using UTC for standardized timezone-aware timestamps
     created_at: Mapped[datetime] = mapped_column(
@@ -32,6 +33,9 @@ class User(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc)
     )
+
+    # Password hash for authentication (bcrypt)
+    password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
 
     # Relationship to medications
     medications: Mapped[list["Medication"]] = relationship(

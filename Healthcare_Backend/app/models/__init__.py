@@ -5,6 +5,7 @@ from app.models.document import Document
 from app.models.medication import Medication, MedicationSchedule, AdherenceLog, AdherenceStatus
 from app.models.fitness import FitnessData, FitnessSource
 from app.models.google_health_token import GoogleHealthToken
+from app.models.oauth_state import OAuthState
 
 __all__ = [
     "Base",

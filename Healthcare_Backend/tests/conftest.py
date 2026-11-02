@@ -4,6 +4,9 @@ tests/conftest.py
 Pytest configuration and fixtures for testing.
 """
 import pytest
+import os
+from dotenv import load_dotenv
+load_dotenv(dotenv_path=r"C:\Users\MS\Desktop\capabal - Copy\FurrGo\Healthcare_Backend/.env")
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -12,6 +15,7 @@ from sqlalchemy.pool import StaticPool
 from app.main import app
 from app.core.database import get_db
 from app.models import Base
+from app.models.oauth_state import OAuthState
 
 # Create an in-memory SQLite database for testing
 TEST_DATABASE_URL = "sqlite:///:memory:"

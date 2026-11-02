@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.api.routes import health, chat, medication, fitness, google_health
+from app.api.routes import health, chat, medication, fitness, google_health, auth
 from app.core.database import engine
 from app.models import Base
 from app.services.scheduler import get_scheduler_service, sync_schedules
@@ -28,6 +28,8 @@ async def lifespan(app: FastAPI):
     # Initialize and start scheduler
     scheduler_service = get_scheduler_service()
     scheduler_service.start()
+    # Register authentication router
+    app.include_router(auth.router)
     
     # Sync active medication schedules
     from app.core.database import get_db
@@ -86,6 +88,7 @@ def create_application() -> FastAPI:
     application.include_router(medication.router)
     application.include_router(fitness.router)
     application.include_router(google_health.router)
+    application.include_router(auth.router)
 
     return application
 

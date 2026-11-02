@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
 
+from app.models.base import Base
 # If using SQLite, automatically create the directory path
 if settings.DATABASE_URL.startswith("sqlite"):
     # Convert 'sqlite:///./data/health_ai.db' to './data/health_ai.db'
@@ -30,6 +31,8 @@ engine = create_engine(
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def get_db():
     """Dependency for FastAPI endpoints to get a database session."""

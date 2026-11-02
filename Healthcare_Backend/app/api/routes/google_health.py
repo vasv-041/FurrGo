@@ -1,7 +1,7 @@
 """
 app/api/routes/google_health.py
 
-Google Health API OAuth routes.
+Google Health API OAuth routes with JWT authentication and OAuth state binding.
 """
 from datetime import datetime
 from typing import Optional, List
@@ -10,7 +10,6 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.schemas.google_health import (
-    GoogleAuthRequest,
     GoogleAuthResponse,
     GoogleCallbackRequest,
     GoogleHealthConnectionStatus,
@@ -21,17 +20,16 @@ from app.schemas.google_health import (
 )
 from app.services.google_health_service import get_google_health_service, GoogleHealthService, DEFAULT_SCOPES
 from app.core.database import get_db
+from app.api.deps import get_current_user
+from app.api.deps import store_oauth_state, get_oauth_state, invalidate_oauth_state
 import os
 import logging
+import secrets
+import string
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/fitness/google", tags=["Google Health"])
-
-
-def get_current_user_id() -> int:
-    """Get current user ID. TEMPORARY: uses environment variable."""
-    return int(os.getenv("DEFAULT_USER_ID", "1"))
 
 
 @router.get(
@@ -43,11 +41,30 @@ def get_current_user_id() -> int:
 async def authorize_google_health(
     scopes: Optional[List[str]] = Query(None, description="OAuth scopes to request"),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> GoogleAuthResponse:
     """Start Google Health OAuth authorization flow."""
     service = get_google_health_service(db)
+    
+    # Generate a cryptographically random state token
+    state_token = "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+    
+    # Bind the state to the initiating user
+    store_oauth_state(state_token, current_user.id, db, expiry_minutes=10)
+    
+    # Generate authorization URL - we'll construct a proper one
+    # For now, return the state that the client should use
     auth_response = service.get_authorization_url(scopes=None)
-    return auth_response
+    
+    # Add the state parameter to the response so the frontend can use it
+    # The client will pass this state to the callback
+    return {
+        "message": "Authorization URL generated",
+        "connected": False,
+        "authorization_url": auth_response.authorization_url,
+        "state": state_token,
+        "expires_in": 600  # 10 minutes in seconds
+    }
 
 
 @router.get(
@@ -62,7 +79,7 @@ async def google_health_callback(
     error: Optional[str] = Query(None),
     error_description: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-):
+) -> dict:
     """Handle OAuth callback from Google."""
     if error:
         raise HTTPException(
@@ -76,21 +93,23 @@ async def google_health_callback(
             detail="Missing code or state parameter",
         )
 
-    # Get the expected state from session or query param
-    # For simplicity, we'll get it from the query param
-    # In production, you'd store state in a secure session
-    expected_state = state
-
+    # Look up the state from the server-side store
+    # This independently validates the state, regardless of what's in the callback
+    user_id = get_oauth_state(state)
+    
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired state parameter",
+        )
+    
     service = get_google_health_service(db)
 
     try:
         # Exchange code for tokens
-        token_data = service.exchange_code(code, state, expected_state)
+        token_data = service.exchange_code(code, state, state)
 
-        # Get user ID (temporary - from env)
-        user_id = get_current_user_id()
-
-        # Store tokens
+        # Store tokens for the authenticated user from the initial authorization
         service.store_tokens(user_id, token_data, DEFAULT_SCOPES)
 
         # Return success page or redirect
@@ -120,9 +139,10 @@ async def google_health_callback(
 )
 async def google_health_status(
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> GoogleHealthConnectionStatus:
     """Check Google Health connection status."""
-    user_id = get_current_user_id()
+    user_id = current_user.id
     service = get_google_health_service(db)
     return service.get_connection_status(user_id)
 
@@ -136,9 +156,10 @@ async def google_health_status(
 async def sync_google_health(
     sync_request: GoogleHealthSyncRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> GoogleHealthSyncResponse:
     """Sync fitness data from Google Health API."""
-    user_id = get_current_user_id()
+    user_id = current_user.id
     service = get_google_health_service(db)
 
     start_date = None
@@ -175,9 +196,10 @@ async def sync_google_health(
 async def disconnect_google_health(
     disconnect_request: GoogleDisconnectRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> GoogleDisconnectResponse:
     """Disconnect Google Health integration."""
-    user_id = get_current_user_id()
+    user_id = current_user.id
     service = get_google_health_service(db)
 
     success = service.revoke_tokens(user_id)
